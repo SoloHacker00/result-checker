@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 START_ROLL = 9002
 END_ROLL = 9069
 PRIORITY_ROLL = 9022
-PREFIX = "24UEEE"
+PREFIX = "24UEEE"  # Updated to Electrical based on your snippet
 INPUT_BOX_ID = "txtRollNo"
 EXTERNAL_SCRIPT_NAME = "merge_script.py"
 
@@ -31,13 +31,10 @@ def get_driver():
     chrome_options = Options()
     # 1. Run Headless
     chrome_options.add_argument("--headless=new")
-    
-    # 2. Set Window Size (CRITICAL: Prevents mobile layout)
+    # 2. Set Window Size
     chrome_options.add_argument("--window-size=1920,1080")
-    
-    # 3. Spoof User Agent (Look like a real Windows PC)
+    # 3. Spoof User Agent
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    
     # 4. Standard bypasses
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
@@ -66,35 +63,41 @@ def disable_github_workflow():
 
 def check_and_download():
     driver = get_driver()
-    # INCREASED TIMEOUT: 30 Seconds
     wait = WebDriverWait(driver, 30)
     
     print(">>> Checking Website...")
     try:
         driver.get("https://mbmiums.in/")
         
+        # --- FIX: USING JS CLICKS (Same as your Local Script) ---
+
         # 1. Click 'Exam Results'
         print("   -> Clicking Exam Results...")
-        wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'ExamResult.aspx')]"))).click()
+        el_results = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(@href, 'ExamResult.aspx')]")))
+        driver.execute_script("arguments[0].click();", el_results)
         
-        # 2. Click 'View Semester Results' (Handle if it's already open)
+        # 2. Click 'View Semester Results'
         try:
             print("   -> Checking Category Tab...")
-            cat_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'View Semester Results')]")))
-            cat_link.click()
+            el_cat = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'View Semester Results')]")))
+            driver.execute_script("arguments[0].click();", el_cat)
             time.sleep(2)
         except: 
             print("   -> Tab might be already open, proceeding...")
 
-        # 3. Click 'Odd Sem 2024'
+        # 3. Click 'Even Sem 2024'
         print("   -> Clicking Even Sem 2024...")
-        wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Even') and contains(text(), '2024')]"))).click()
+        el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Even') and contains(text(), '2024')]")))
+        driver.execute_script("arguments[0].click();", el_sem)
         
-        # 4. CHECK FOR ECC LINK
-        print("   -> Searching for ECC Link...")
+        # 4. CHECK FOR BRANCH LINK (Using 'EEE' or 'Electrical')
+        print("   -> Searching for Branch Link...")
         try:
-            branch_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Electronics') and (contains(text(), 'IV') or contains(text(), '4th'))]")))
-            branch_link.click()
+            # I added a broader search here to match either "Electrical" OR "EEE" just to be safe
+            branch_xpath = "//a[(contains(text(), 'Electrical') or contains(text(), 'EEE')) and (contains(text(), 'IV') or contains(text(), '4th'))]"
+            
+            el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
+            driver.execute_script("arguments[0].click();", el_branch)
             
             # Verify Input Box Exists
             wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
@@ -110,8 +113,12 @@ def check_and_download():
                     full_roll = f"{PREFIX}{roll}"
                     driver.find_element(By.ID, INPUT_BOX_ID).clear()
                     driver.find_element(By.ID, INPUT_BOX_ID).send_keys(full_roll)
-                    driver.find_element(By.ID, "btnGetResult").click()
-                    time.sleep(5) # Give 5 seconds for download
+                    
+                    # Force Click Search Button too
+                    btn = driver.find_element(By.ID, "btnGetResult")
+                    driver.execute_script("arguments[0].click();", btn)
+                    
+                    time.sleep(5) 
 
                     # Priority Send
                     if roll == PRIORITY_ROLL:
@@ -135,19 +142,17 @@ def check_and_download():
             disable_github_workflow()
             return True
             
-        except TimeoutException:
-            print(">>> Link not active yet (Timeout checking for ECC link).")
+        except Exception:
+            print(">>> Link not active yet (Timeout checking for Branch link).")
             return False
 
     except Exception as e:
-        # --- DEBUG: TAKE SCREENSHOT ON ERROR ---
         print(f"Error: {e}")
         driver.save_screenshot("error_screenshot.png")
-        print(">>> Screenshot saved as error_screenshot.png")
+        print(">>> Screenshot saved.")
         return False
     finally:
         driver.quit()
 
 if __name__ == "__main__":
     check_and_download()
-
