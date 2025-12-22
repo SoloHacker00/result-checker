@@ -2,31 +2,16 @@ name: Result Checker Bot
 
 on:
   schedule:
-    # --- BLOCK 1: Morning (8 AM & 10 AM IST) ---
-    # UTC: 02:30, 04:30
     - cron: '30 2,4 * * *'
-
-    # --- BLOCK 2: Afternoon (12 PM to 4 PM IST) - Every 30 mins ---
-    # UTC: 06:30 to 10:30
     - cron: '0,30 6-10 * * *'
-
-    # --- BLOCK 3: PEAK TIME (4 PM to 7 PM IST) - Every 5 mins ---
-    # UTC: 10:30 to 13:30
-    # 10:30-10:55 UTC (4:00 PM - 4:25 PM IST)
     - cron: '30-59/5 10 * * *'
-    # 11:00-12:59 UTC (4:30 PM - 6:30 PM IST)
     - cron: '*/5 11-12 * * *'
-    # 13:00-13:30 UTC (6:30 PM - 7:00 PM IST)
     - cron: '0-30/5 13 * * *'
-
-    # --- BLOCK 4: Evening (7 PM to 9 PM IST) - Every 30 mins ---
-    # UTC: 13:30 to 15:30
     - cron: '30 13,14,15 * * *'
-
-  workflow_dispatch: # Allows manual run button
+  workflow_dispatch:
 
 permissions:
-  actions: write       # REQUIRED: To kill the script after success
+  actions: write
   contents: read
 
 jobs:
@@ -49,7 +34,14 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # WHATSAPP_API_KEY: ${{ secrets.WHATSAPP_API_KEY }}  <-- Commented out
-          # WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}      <-- Commented out
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-generated
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python result_checker.py
+
+      # --- NEW STEP: Upload Screenshot if Error ---
+      - name: Upload Error Screenshot
+        if: failure() || success()  # Run this even if the script crashed
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-debug
+          path: error_screenshot.png
+          if-no-files-found: ignore
