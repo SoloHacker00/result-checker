@@ -16,10 +16,10 @@ WHATSAPP_API_KEY = os.environ.get("WHATSAPP_API_KEY")
 WHATSAPP_PHONE = os.environ.get("WHATSAPP_PHONE") # e.g., +919999999999
 
 # --- CONFIG ---
-START_ROLL = 7002
-END_ROLL = 7069
-PRIORITY_ROLL = 7022
-PREFIX = "24UECE"
+START_ROLL = 9002
+END_ROLL = 9069
+PRIORITY_ROLL = 9022
+PREFIX = "24UEEE"
 INPUT_BOX_ID = "txtRollNo"
 GET_RESULT_BUTTON_ID = "btnGetResult"
 EXTERNAL_SCRIPT_NAME = "merge_script.py"
@@ -87,7 +87,7 @@ def check_and_download():
         
         # LOOK FOR THE ECC LINK
         try:
-            branch_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'ECE') and (contains(text(), 'IV') or contains(text(), '4th'))]")))
+            branch_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'EEE') and (contains(text(), 'IV') or contains(text(), '4th'))]")))
             branch_link.click()
             wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
             print(">>> LINK ACTIVE! Starting Download...")
@@ -134,4 +134,5 @@ def check_and_download():
 if __name__ == "__main__":
 
     check_and_download()
+
 
