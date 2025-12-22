@@ -9,10 +9,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIG ---
-START_ROLL = 8002
-END_ROLL = 8069
-PRIORITY_ROLL = 8022
-PREFIX = "24UECC"
+START_ROLL = 9002
+END_ROLL = 9069
+PRIORITY_ROLL = 9022
+PREFIX = "24UEEE"
 INPUT_BOX_ID = "txtRollNo"
 EXTERNAL_SCRIPT_NAME = "merge_script.py"
 
@@ -87,13 +87,13 @@ def check_and_download():
             print("   -> Tab might be already open, proceeding...")
 
         # 3. Click 'Odd Sem 2024'
-        print("   -> Clicking Odd Sem 2024...")
-        wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Odd') and contains(text(), '2024')]"))).click()
+        print("   -> Clicking Even Sem 2024...")
+        wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Even') and contains(text(), '2024')]"))).click()
         
         # 4. CHECK FOR ECC LINK
         print("   -> Searching for ECC Link...")
         try:
-            branch_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'ECC') and (contains(text(), 'III') or contains(text(), '3rd'))]")))
+            branch_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Electronics') and (contains(text(), 'IV') or contains(text(), '4th'))]")))
             branch_link.click()
             
             # Verify Input Box Exists
@@ -150,3 +150,4 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
+
