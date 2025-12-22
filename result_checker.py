@@ -108,7 +108,10 @@ def check_and_download():
                 except: continue
 
             # Run Merger
-            subprocess.run(["python", EXTERNAL_SCRIPT_NAME], cwd=DOWNLOAD_DIR)
+            script_full_path = os.path.join(BASE_DIR, EXTERNAL_SCRIPT_NAME)
+            
+            print(f"   -> Running merger from: {DOWNLOAD_DIR}")
+            subprocess.run(["python", script_full_path], cwd=DOWNLOAD_DIR)
             
             # Send Final PDF
             merged_pdf = os.path.join(DOWNLOAD_DIR, "merged_all.pdf")
@@ -131,3 +134,4 @@ def check_and_download():
 if __name__ == "__main__":
 
     check_and_download()
+
