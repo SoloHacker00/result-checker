@@ -41,39 +41,19 @@ def get_driver():
     chrome_options.add_experimental_option("prefs", prefs)
     return webdriver.Chrome(options=chrome_options)
 
-# --- UPDATED TELEGRAM FUNCTION WITH DEBUGGING ---
 def send_telegram(msg, file_path=None):
-    print(f"   -> [Telegram] Attempting to send: '{msg}'...")
-    
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("   -> [Telegram] ERROR: Secrets are missing! Check GitHub Settings.")
-        return
-
+    if not TELEGRAM_BOT_TOKEN: return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
-    
     try:
-        response = None
         if file_path:
-            # Check file size first (Limit is 50MB)
-            file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-            print(f"   -> [Telegram] File size: {file_size_mb:.2f} MB")
-            
-            if file_size_mb > 49:
-                print("   -> [Telegram] WARNING: File too large (>50MB). Sending text warning instead.")
-                requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': f"Result found! but PDF is {file_size_mb:.2f}MB (Too big for Telegram). Check GitHub Artifacts."})
+            if os.path.getsize(file_path) / (1024 * 1024) > 49:
+                requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': f"Result found! PDF too large for Telegram."})
                 return
-
             with open(file_path, 'rb') as f:
-                response = requests.post(url + "sendDocument", files={'document': f}, data={'chat_id': TELEGRAM_CHAT_ID, 'caption': msg})
+                requests.post(url + "sendDocument", files={'document': f}, data={'chat_id': TELEGRAM_CHAT_ID, 'caption': msg})
         else:
-            response = requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': msg})
-        
-        # PRINT THE EXACT RESPONSE FROM TELEGRAM
-        print(f"   -> [Telegram] Status: {response.status_code}")
-        print(f"   -> [Telegram] Response: {response.text}")
-        
-    except Exception as e: 
-        print(f"   -> [Telegram] CRASH: {e}")
+            requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': msg})
+    except Exception: pass
 
 def disable_github_workflow():
     if not GITHUB_TOKEN or not REPO_NAME: return
@@ -87,8 +67,8 @@ def check_and_download():
     
     print(">>> Checking Website...")
     try:
-        # --- TEST TELEGRAM AT START ---
-        send_telegram("🔔 Bot Started Checking... (Test Message)")
+        # Test Message to confirm Bot is alive
+        send_telegram("Bot Checking...") 
 
         driver.get("https://mbmiums.in/")
         
@@ -103,19 +83,36 @@ def check_and_download():
             time.sleep(2)
         except: pass
 
-        # 3. Click Semester
+        # 3. Click Semester (ODD 2024)
         el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Odd') and contains(text(), '2024')]")))
         driver.execute_script("arguments[0].click();", el_sem)
         
-        # 4. Click Branch
-        print("   -> Searching for Electrical/EEE Link...")
-        branch_xpath = "//a[(contains(text(), 'Electronics and computer') or contains(text(), 'ECC')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
+        # 4. Click Branch (ECC)
+        print("   -> Searching for ECC Link...")
+        
+        # Updated XPath for ECC / Electronics
+        branch_xpath = "//a[(contains(text(), 'Electronics') or contains(text(), 'ECC')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
+        
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
+        
+        # PRINT THE EXACT TEXT IT FOUND (Debug Step)
+        print(f"   -> FOUND LINK: '{el_branch.text}'") 
+        
+        # Click and Wait
         driver.execute_script("arguments[0].click();", el_branch)
+        print("   -> Clicked. Waiting 5 seconds for page load...")
+        time.sleep(5) 
         
-        wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
-        
-        print(">>> LINK FOUND! Processing...")
+        # 5. Verify Input Box (The Crash Point)
+        try:
+            wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
+        except:
+            print("   -> Input box not found on first try. Clicking link again...")
+            driver.execute_script("arguments[0].click();", el_branch)
+            time.sleep(5)
+            wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
+
+        print(">>> LINK FOUND & LOADED! Processing...")
         send_telegram("🚨 Result Link Active! Starting downloads...")
 
         # Download Logic
@@ -162,5 +159,3 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
-
-
