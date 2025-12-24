@@ -47,7 +47,7 @@ def send_telegram(msg, file_path=None):
     try:
         if file_path:
             if os.path.getsize(file_path) / (1024 * 1024) > 49:
-                requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': f"Result found! PDF too large for Telegram."})
+                requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': "Result found! PDF > 50MB."})
                 return
             with open(file_path, 'rb') as f:
                 requests.post(url + "sendDocument", files={'document': f}, data={'chat_id': TELEGRAM_CHAT_ID, 'caption': msg})
@@ -67,52 +67,54 @@ def check_and_download():
     
     print(">>> Checking Website...")
     try:
-        # Test Message to confirm Bot is alive
-        send_telegram("Bot Checking...") 
+        # 1. Test Telegram
+        send_telegram("🔔 Bot checking for results...")
 
         driver.get("https://mbmiums.in/")
         
-        # 1. Click Exam Results
+        # 2. Click Exam Results
         el_results = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(@href, 'ExamResult.aspx')]")))
         driver.execute_script("arguments[0].click();", el_results)
         
-        # 2. Click Category
+        # 3. Click Category
         try:
             el_cat = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'View Semester Results')]")))
             driver.execute_script("arguments[0].click();", el_cat)
             time.sleep(2)
         except: pass
 
-        # 3. Click Semester (ODD 2024)
+        # 4. Click Semester (Odd Sem 2024)
+        print("   -> Looking for 'Odd Sem 2024'...")
         el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Odd') and contains(text(), '2024')]")))
         driver.execute_script("arguments[0].click();", el_sem)
         
-        # 4. Click Branch (ECC)
-        print("   -> Searching for ECC Link...")
+        # 5. Click Branch (ECC / Electronics)
+        print("   -> Searching for Branch Link...")
         
-        # Updated XPath for ECC / Electronics
+        # This XPath finds "Electronics" OR "ECC"
         branch_xpath = "//a[(contains(text(), 'Electronics') or contains(text(), 'ECC')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
         
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
+        print(f"   -> FOUND LINK: '{el_branch.text}'")
         
-        # PRINT THE EXACT TEXT IT FOUND (Debug Step)
-        print(f"   -> FOUND LINK: '{el_branch.text}'") 
-        
-        # Click and Wait
+        # --- THE DOUBLE-TAP LOGIC ---
         driver.execute_script("arguments[0].click();", el_branch)
-        print("   -> Clicked. Waiting 5 seconds for page load...")
+        print("   -> Clicked link. Waiting 5s...")
         time.sleep(5) 
         
-        # 5. Verify Input Box (The Crash Point)
+        # Check if Input Box appeared. If not, CLICK AGAIN.
         try:
-            wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
+            driver.find_element(By.ID, INPUT_BOX_ID)
+            print("   -> Input Box loaded successfully.")
         except:
-            print("   -> Input box not found on first try. Clicking link again...")
+            print("   -> Input Box NOT found. Retrying click...")
             driver.execute_script("arguments[0].click();", el_branch)
             time.sleep(5)
+            # Final Check - Let it crash here if it still fails
             wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
+            print("   -> Input Box loaded on 2nd try.")
 
-        print(">>> LINK FOUND & LOADED! Processing...")
+        print(">>> LINK ACTIVE! Processing...")
         send_telegram("🚨 Result Link Active! Starting downloads...")
 
         # Download Logic
@@ -152,7 +154,9 @@ def check_and_download():
         return True
         
     except Exception:
+        print(">>> ERROR or Link not active yet.")
         traceback.print_exc()
+        driver.save_screenshot("error_screenshot.png")
         return False
     finally:
         driver.quit()
