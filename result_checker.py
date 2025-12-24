@@ -10,10 +10,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIG ---
-START_ROLL = 9002
-END_ROLL = 9069
-PRIORITY_ROLL = 9022
-PREFIX = "24UEEE"
+START_ROLL = 8002
+END_ROLL = 8069
+PRIORITY_ROLL = 8022
+PREFIX = "24UECC"
 INPUT_BOX_ID = "txtRollNo"
 EXTERNAL_SCRIPT_NAME = "merge_script.py"
 
@@ -104,12 +104,12 @@ def check_and_download():
         except: pass
 
         # 3. Click Semester
-        el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Even') and contains(text(), '2024')]")))
+        el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Odd') and contains(text(), '2024')]")))
         driver.execute_script("arguments[0].click();", el_sem)
         
         # 4. Click Branch
         print("   -> Searching for Electrical/EEE Link...")
-        branch_xpath = "//a[(contains(text(), 'Electrical') or contains(text(), 'EEE')) and (contains(text(), 'IV') or contains(text(), '4th'))]"
+        branch_xpath = "//a[(contains(text(), '') or contains(text(), 'ECC')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
         driver.execute_script("arguments[0].click();", el_branch)
         
@@ -162,3 +162,4 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
+
