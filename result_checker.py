@@ -109,7 +109,7 @@ def check_and_download():
         
         # 4. Click Branch
         print("   -> Searching for Electrical/EEE Link...")
-        branch_xpath = "//a[(contains(text(), '') or contains(text(), 'ECC')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
+        branch_xpath = "//a[(contains(text(), 'Electronics and computer') or contains(text(), 'ECC')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
         driver.execute_script("arguments[0].click();", el_branch)
         
@@ -162,4 +162,5 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
+
 
