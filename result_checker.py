@@ -2,7 +2,7 @@ import os
 import time
 import requests
 import subprocess
-import traceback  # <--- NEW: To print exact errors
+import traceback
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -41,16 +41,39 @@ def get_driver():
     chrome_options.add_experimental_option("prefs", prefs)
     return webdriver.Chrome(options=chrome_options)
 
+# --- UPDATED TELEGRAM FUNCTION WITH DEBUGGING ---
 def send_telegram(msg, file_path=None):
-    if not TELEGRAM_BOT_TOKEN: return
+    print(f"   -> [Telegram] Attempting to send: '{msg}'...")
+    
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("   -> [Telegram] ERROR: Secrets are missing! Check GitHub Settings.")
+        return
+
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
+    
     try:
+        response = None
         if file_path:
+            # Check file size first (Limit is 50MB)
+            file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+            print(f"   -> [Telegram] File size: {file_size_mb:.2f} MB")
+            
+            if file_size_mb > 49:
+                print("   -> [Telegram] WARNING: File too large (>50MB). Sending text warning instead.")
+                requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': f"Result found! but PDF is {file_size_mb:.2f}MB (Too big for Telegram). Check GitHub Artifacts."})
+                return
+
             with open(file_path, 'rb') as f:
-                requests.post(url + "sendDocument", files={'document': f}, data={'chat_id': TELEGRAM_CHAT_ID, 'caption': msg})
+                response = requests.post(url + "sendDocument", files={'document': f}, data={'chat_id': TELEGRAM_CHAT_ID, 'caption': msg})
         else:
-            requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': msg})
-    except Exception as e: print(f"Telegram Error: {e}")
+            response = requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': msg})
+        
+        # PRINT THE EXACT RESPONSE FROM TELEGRAM
+        print(f"   -> [Telegram] Status: {response.status_code}")
+        print(f"   -> [Telegram] Response: {response.text}")
+        
+    except Exception as e: 
+        print(f"   -> [Telegram] CRASH: {e}")
 
 def disable_github_workflow():
     if not GITHUB_TOKEN or not REPO_NAME: return
@@ -60,62 +83,39 @@ def disable_github_workflow():
 
 def check_and_download():
     driver = get_driver()
-    wait = WebDriverWait(driver, 30)
+    wait = WebDriverWait(driver, 60)
     
-    print(">>> DIAGNOSTIC MODE: STARTED")
+    print(">>> Checking Website...")
     try:
-        print("   -> Loading Homepage...")
+        # --- TEST TELEGRAM AT START ---
+        send_telegram("🔔 Bot Started Checking... (Test Message)")
+
         driver.get("https://mbmiums.in/")
         
-        # 1. Click 'Exam Results'
-        print("   -> Attempting to click 'Exam Results'...")
+        # 1. Click Exam Results
         el_results = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(@href, 'ExamResult.aspx')]")))
         driver.execute_script("arguments[0].click();", el_results)
         
-        # 2. Click 'View Semester Results'
+        # 2. Click Category
         try:
-            print("   -> Attempting to click 'View Semester Results'...")
             el_cat = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'View Semester Results')]")))
             driver.execute_script("arguments[0].click();", el_cat)
             time.sleep(2)
-        except: 
-            print("   -> [INFO] 'View Semester Results' might be open already.")
+        except: pass
 
-        # 3. Click 'Even Sem 2024'
-        print("   -> Attempting to click 'Even Sem 2024'...")
-        # Note: Broadened xpath to just 2024 just in case
+        # 3. Click Semester
         el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Even') and contains(text(), '2024')]")))
         driver.execute_script("arguments[0].click();", el_sem)
         
-        # 4. SEARCHING FOR BRANCH
+        # 4. Click Branch
         print("   -> Searching for Electrical/EEE Link...")
+        branch_xpath = "//a[(contains(text(), 'Electrical') or contains(text(), 'EEE')) and (contains(text(), 'IV') or contains(text(), '4th'))]"
+        el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
+        driver.execute_script("arguments[0].click();", el_branch)
         
-        branch_xpath = "//a[(contains(text(), 'Electronics & Electrical') or contains(text(), 'EEE')) and (contains(text(), 'IV') or contains(text(), '4th'))]"
-        
-        try:
-            el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
-            print(f"   -> FOUND LINK: '{el_branch.text}'")
-            driver.execute_script("arguments[0].click();", el_branch)
-        except Exception:
-            # --- DIAGNOSTIC BLOCK ---
-            print("\n" + "!"*30)
-            print("   -> [ERROR] COULD NOT FIND BRANCH LINK!")
-            print("   -> Dumping all visible links to see what is wrong:")
-            print("!"*30)
-            
-            links = driver.find_elements(By.TAG_NAME, "a")
-            for l in links:
-                txt = l.text.strip()
-                if len(txt) > 3: # Only print meaningful links
-                    print(f"      [LINK]: {txt}")
-            
-            raise Exception("Branch Link not found (See list above for available options)")
-
-        # Verify Input Box
-        print("   -> Waiting for Input Box...")
         wait.until(EC.presence_of_element_located((By.ID, INPUT_BOX_ID)))
         
-        print(">>> LINK ACTIVE! Starting Processing...")
+        print(">>> LINK FOUND! Processing...")
         send_telegram("🚨 Result Link Active! Starting downloads...")
 
         # Download Logic
@@ -124,13 +124,13 @@ def check_and_download():
         for roll in roll_sequence:
             try:
                 full_roll = f"{PREFIX}{roll}"
-                driver.find_element(By.ID, INPUT_BOX_ID).clear()
-                driver.find_element(By.ID, INPUT_BOX_ID).send_keys(full_roll)
+                input_box = driver.find_element(By.ID, INPUT_BOX_ID)
+                input_box.clear()
+                input_box.send_keys(full_roll)
                 
                 btn = driver.find_element(By.ID, "btnGetResult")
                 driver.execute_script("arguments[0].click();", btn)
-                
-                time.sleep(5) 
+                time.sleep(4) 
 
                 if roll == PRIORITY_ROLL:
                     files = [os.path.join(DOWNLOAD_DIR, f) for f in os.listdir(DOWNLOAD_DIR) if f.endswith('.pdf')]
@@ -138,9 +138,7 @@ def check_and_download():
                         newest_pdf = max(files, key=os.path.getctime)
                         send_telegram("Here is your personal result! 👇", newest_pdf)
 
-            except Exception as e: 
-                print(f"   -> Skipped {roll}: {e}")
-                continue
+            except Exception: continue
 
         # Merge
         print("   -> Merging...")
@@ -157,22 +155,10 @@ def check_and_download():
         return True
         
     except Exception:
-        print("\n" + "#"*40)
-        print(">>> FATAL ERROR OCCURRED")
-        print("#"*40)
-        # THIS PRINTS THE EXACT LINE NUMBER AND ERROR
         traceback.print_exc()
-        
-        # Save artifacts
-        driver.save_screenshot("error_screenshot.png")
-        with open("debug_page.html", "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
-            
-        print(">>> Artifacts saved: error_screenshot.png, debug_page.html")
         return False
     finally:
         driver.quit()
 
 if __name__ == "__main__":
     check_and_download()
-
