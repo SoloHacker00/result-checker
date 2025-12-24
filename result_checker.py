@@ -13,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 START_ROLL = 8002
 END_ROLL = 8069
 PRIORITY_ROLL = 8022
-PREFIX = "24UECC"
+PREFIX = "24UECC"  # Change this to 24UEEE if you are Electrical
 INPUT_BOX_ID = "txtRollNo"
 EXTERNAL_SCRIPT_NAME = "merge_script.py"
 
@@ -65,10 +65,11 @@ def check_and_download():
     driver = get_driver()
     wait = WebDriverWait(driver, 60)
     
+    print(">>> CODE VERSION: V5 (Universal Fix + Double Tap)")
     print(">>> Checking Website...")
     try:
         # 1. Test Telegram
-        send_telegram("🔔 Bot checking for results...")
+        send_telegram("🔔 Bot checking for results (V5)...")
 
         driver.get("https://mbmiums.in/")
         
@@ -88,11 +89,11 @@ def check_and_download():
         el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Odd') and contains(text(), '2024')]")))
         driver.execute_script("arguments[0].click();", el_sem)
         
-        # 5. Click Branch (ECC / Electronics)
-        print("   -> Searching for Branch Link...")
+        # 5. Click Branch (Universal Search)
+        print("   -> Searching for Branch Link (Electrical/Electronics/ECC)...")
         
-        # This XPath finds "Electronics" OR "ECC"
-        branch_xpath = "//a[(contains(text(), 'Electronics') or contains(text(), 'ECC')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
+        # This matches Electrical OR Electronics OR ECC OR EEE
+        branch_xpath = "//a[(contains(text(), 'Electronics') or contains(text(), 'Electrical') or contains(text(), 'ECC') or contains(text(), 'EEE')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
         
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
         print(f"   -> FOUND LINK: '{el_branch.text}'")
