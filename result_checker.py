@@ -91,7 +91,7 @@ def check_and_download():
         print("   -> Searching for Branch Link (Electrical/Electronics/ECC)...")
         
         # This matches Electrical OR Electronics OR ECC OR EEE
-        branch_xpath = "//a[contains(text(), 'Electronics & Electrical') or contains(text(), 'EEE')) and (contains(text(), 'IV') or contains(text(), '4th'))]"
+        branch_xpath = "//a[contains(text(), 'Electronics & Electrical') or contains(text(), 'EEE') and (contains(text(), 'IV') or contains(text(), '4th'))]"
         
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
         print(f"   -> FOUND LINK: '{el_branch.text}'")
@@ -162,4 +162,5 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
+
 
