@@ -3,11 +3,13 @@ import time
 import requests
 import subprocess
 import traceback
+from twilio.rest import Client
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertPresentException
 
 # --- CONFIG ---
 START_ROLL = 8002
@@ -22,6 +24,12 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY") 
+
+# --- TWILIO SECRETS ---
+TWILIO_SID = os.environ.get("TWILIO_SID")
+TWILIO_TOKEN = os.environ.get("TWILIO_TOKEN")
+TWILIO_FROM = os.environ.get("TWILIO_FROM")
+TWILIO_TO = os.environ.get("TWILIO_TO")
 
 # Setup Paths
 BASE_DIR = os.getcwd()
@@ -41,6 +49,24 @@ def get_driver():
     chrome_options.add_experimental_option("prefs", prefs)
     return webdriver.Chrome(options=chrome_options)
 
+def send_whatsapp(msg):
+    """Sends WhatsApp message via Twilio"""
+    if not TWILIO_SID or not TWILIO_TOKEN:
+        print("   -> [WhatsApp] Secrets missing. Skipping.")
+        return
+
+    try:
+        client = Client(TWILIO_SID, TWILIO_TOKEN)
+        message = client.messages.create(
+            from_=TWILIO_FROM,
+            body=msg,
+            to=TWILIO_TO
+        )
+        print(f"   -> [WhatsApp] Sent! SID: {message.sid}")
+    except Exception as e:
+        print(f"   -> [WhatsApp] Error: {e}")
+
+
 def send_telegram(msg, file_path=None):
     if not TELEGRAM_BOT_TOKEN: return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/"
@@ -54,6 +80,16 @@ def send_telegram(msg, file_path=None):
         else:
             requests.post(url + "sendMessage", data={'chat_id': TELEGRAM_CHAT_ID, 'text': msg})
     except Exception: pass
+
+def handle_potential_alert(driver):
+    """Checks for unexpected alerts and accepts them."""
+    try:
+        alert = driver.switch_to.alert
+        print(f"   -> [ALERT DETECTED]: {alert.text}")
+        alert.accept()
+        return True
+    except NoAlertPresentException:
+        return False
 
 def disable_github_workflow():
     if not GITHUB_TOKEN or not REPO_NAME: return
@@ -113,6 +149,7 @@ def check_and_download():
             print("   -> Input Box loaded on 2nd try.")
 
         print(">>> LINK ACTIVE! Processing...")
+        send_whatsapp("🚨 Result Link Active! Bot is downloading files now...")
         send_telegram("🚨 Result Link Active! Starting downloads...")
 
         # Download Logic
@@ -127,14 +164,20 @@ def check_and_download():
                 
                 btn = driver.find_element(By.ID, "btnGetResult")
                 driver.execute_script("arguments[0].click();", btn)
-                time.sleep(4) 
+                time.sleep(3) 
+
+                if handle_potential_alert(driver):
+                    continue
 
                 if roll == PRIORITY_ROLL:
                     files = [os.path.join(DOWNLOAD_DIR, f) for f in os.listdir(DOWNLOAD_DIR) if f.endswith('.pdf')]
                     if files:
                         newest_pdf = max(files, key=os.path.getctime)
                         send_telegram("Here is your personal result! 👇", newest_pdf)
-
+            
+            except UnexpectedAlertPresentException:
+                handle_potential_alert(driver)
+                continue
             except Exception: continue
 
         # Merge
@@ -161,6 +204,7 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
+
 
 
 
