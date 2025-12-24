@@ -10,10 +10,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIG ---
-START_ROLL = 7002
-END_ROLL = 7069
-PRIORITY_ROLL = 7022
-PREFIX = "24UECE"  
+START_ROLL = 8002
+END_ROLL = 8069
+PRIORITY_ROLL = 8022
+PREFIX = "24UECC"  
 INPUT_BOX_ID = "txtRollNo"
 EXTERNAL_SCRIPT_NAME = "merge_script.py"
 
@@ -65,7 +65,6 @@ def check_and_download():
     driver = get_driver()
     wait = WebDriverWait(driver, 60)
     
-    print(">>> CODE VERSION: V5 (Universal Fix + Double Tap)")
     print(">>> Checking Website...")
     try:
         # 1. Driver start
@@ -87,11 +86,11 @@ def check_and_download():
         el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Even') and contains(text(), '2024')]")))
         driver.execute_script("arguments[0].click();", el_sem)
         
-        # 5. Click Branch (Universal Search)
-        print("   -> Searching for Branch Link (Electrical/Electronics/ECC)...")
+        # 5. Click Branch 
+        print("   -> Searching for Branch Link ...")
         
         # This matches Electrical OR Electronics OR ECC OR EEE
-        branch_xpath = "//a[contains(text(), '####') or contains(text(), 'ECE') and (contains(text(), 'IV') or contains(text(), '4th'))]"
+        branch_xpath = "//a[contains(text(), '####') or contains(text(), 'ECC') and (contains(text(), 'IV') or contains(text(), '4th'))]"
         
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
         print(f"   -> FOUND LINK: '{el_branch.text}'")
@@ -162,6 +161,7 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
+
 
 
 
