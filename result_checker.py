@@ -10,10 +10,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIG ---
-START_ROLL = 8002
-END_ROLL = 8069
-PRIORITY_ROLL = 8022
-PREFIX = "24UECC"  # Change this to 24UEEE if you are Electrical
+START_ROLL = 9002
+END_ROLL = 9069
+PRIORITY_ROLL = 9022
+PREFIX = "24UEEE"  
 INPUT_BOX_ID = "txtRollNo"
 EXTERNAL_SCRIPT_NAME = "merge_script.py"
 
@@ -68,9 +68,7 @@ def check_and_download():
     print(">>> CODE VERSION: V5 (Universal Fix + Double Tap)")
     print(">>> Checking Website...")
     try:
-        # 1. Test Telegram
-        send_telegram("🔔 Bot checking for results (V5)...")
-
+        # 1. Driver start
         driver.get("https://mbmiums.in/")
         
         # 2. Click Exam Results
@@ -84,16 +82,16 @@ def check_and_download():
             time.sleep(2)
         except: pass
 
-        # 4. Click Semester (Odd Sem 2024)
-        print("   -> Looking for 'Odd Sem 2024'...")
-        el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Odd') and contains(text(), '2024')]")))
+        # 4. Click Semester (Even Sem 2024)
+        print("   -> Looking for 'Even Sem 2024'...")
+        el_sem = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(), 'Even') and contains(text(), '2024')]")))
         driver.execute_script("arguments[0].click();", el_sem)
         
         # 5. Click Branch (Universal Search)
         print("   -> Searching for Branch Link (Electrical/Electronics/ECC)...")
         
         # This matches Electrical OR Electronics OR ECC OR EEE
-        branch_xpath = "//a[(contains(text(), 'Electronics') or contains(text(), 'Electrical') or contains(text(), 'ECC') or contains(text(), 'EEE')) and (contains(text(), 'III') or contains(text(), '3rd'))]"
+        branch_xpath = "//a[contains(text(), 'Electronics & Electrical') or contains(text(), 'EEE')) and (contains(text(), 'IV') or contains(text(), '4th'))]"
         
         el_branch = wait.until(EC.presence_of_element_located((By.XPATH, branch_xpath)))
         print(f"   -> FOUND LINK: '{el_branch.text}'")
@@ -164,3 +162,4 @@ def check_and_download():
 
 if __name__ == "__main__":
     check_and_download()
+
